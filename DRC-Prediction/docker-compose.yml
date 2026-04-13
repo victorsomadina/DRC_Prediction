@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - MLFLOW_TRACKING_URI=sqlite:///mlruns/mlflow.db
+      - MLFLOW_EXPERIMENT_NAME=drc-cost-prediction
+    volumes:
+      - ./mlruns:/app/mlruns
+      - ./models:/app/models
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - DASHBOARD_API_URL=http://api:8000
+    depends_on:
+      - api
