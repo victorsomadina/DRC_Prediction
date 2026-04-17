@@ -64,6 +64,27 @@ def parse_dates(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
             df[col] = pd.to_datetime(df[col], errors="coerce", utc=True)
     return df
 
+def aggregate_declarations(declarations: pd.DataFrame) -> pd.DataFrame:
+    declarations = declarations.copy()
+
+    if "designatedArea" in declarations.columns:
+        area_counts = (
+            declarations.groupby("disasterNumber")["designatedArea"]
+            .nunique()
+            .rename("designated_area_count")
+        )
+    else:
+        area_counts = None
+
+    # One row per disaster — take first for all scalar fields
+    collapsed = declarations.groupby("disasterNumber", as_index=False).first()
+
+    if area_counts is not None:
+        collapsed = collapsed.merge(area_counts, on="disasterNumber", how="left")
+        collapsed = collapsed.drop(columns=["designatedArea"], errors="ignore")
+
+    return collapsed
+
 
 def engineer_features( declarations: pd.DataFrame, pa_agg: pd.DataFrame, summaries: pd.DataFrame,) -> pd.DataFrame:
     """
@@ -72,6 +93,9 @@ def engineer_features( declarations: pd.DataFrame, pa_agg: pd.DataFrame, summari
     Returns:
         Processed DataFrame ready for modelling.
     """
+    # Collapse to one row per disaster (raw table has one row per designated area)
+    declarations = aggregate_declarations(declarations)
+
     # Parse dates
     declarations = parse_dates(
         declarations,
@@ -86,6 +110,19 @@ def engineer_features( declarations: pd.DataFrame, pa_agg: pd.DataFrame, summari
     # Declaration year & month (seasonality)
     declarations["declaration_year"] = declarations["declarationDate"].dt.year
     declarations["declaration_month"] = declarations["declarationDate"].dt.month
+
+    # Season derived from declaration month
+    def month_to_season(month):
+        if month in (12, 1, 2):
+            return "Winter"
+        elif month in (3, 4, 5):
+            return "Spring"
+        elif month in (6, 7, 8):
+            return "Summer"
+        else:
+            return "Fall"
+
+    declarations["season"] = declarations["declaration_month"].map(month_to_season)
 
     # Region encoding 
     declarations["region"] = declarations["state"].map(REGION_MAP).fillna("Other")

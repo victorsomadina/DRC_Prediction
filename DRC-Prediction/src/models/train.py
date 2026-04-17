@@ -13,7 +13,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from xgboost import XGBRegressor
-
 from src.utils.helpers import DATA_PROCESSED_DIR, ROOT_DIR, get_logger
 
 logger = get_logger(__name__)
@@ -58,7 +57,6 @@ def build_preprocessor() -> ColumnTransformer:
         ]
     )
 
-
 def evaluate(model, X_test, y_test_log, y_test_original) -> dict:
     """Evaluate model on both log and original scale."""
     y_pred_log = model.predict(X_test)
@@ -69,7 +67,6 @@ def evaluate(model, X_test, y_test_log, y_test_original) -> dict:
     r2 = r2_score(y_test_log, y_pred_log)
 
     return {"rmse": rmse, "mae": mae, "r2": r2}
-
 
 def train_and_log(
     name: str,
@@ -100,9 +97,7 @@ def train_and_log(
 
 
 def run_training(test_size: float = 0.2, random_state: int = 42) -> dict:
-    """
-    Full training pipeline. Returns dict with best model info.
-    """
+    """ Full training pipeline. Returns dict with best model info. """
     df = load_processed()
 
     required_cols = NUMERIC_FEATURES + CATEGORICAL_FEATURES + [TARGET, TARGET_ORIGINAL]
